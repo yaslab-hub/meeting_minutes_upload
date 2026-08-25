@@ -1,53 +1,177 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>實驗室會議紀錄上傳平台</title>
+    <title>實驗室會議紀錄上傳平台 | Lab Meeting Minutes Upload</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px; }
-        input, button { display: block; width: 100%; margin: 15px 0; padding: 10px; box-sizing: border-box; }
-        button { background-color: #0366d6; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button:hover { background-color: #0056b3; }
-        #status { margin-top: 20px; font-weight: bold; text-align: center; }
+        :root { --ink: #17212b; --muted: #66727d; --line: #dfe6ea; --paper: #fff; --accent: #0b7285; --accent-dark: #075968; --background: #edf4f3; }
+        * { box-sizing: border-box; }
+        body { font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; color: var(--ink); max-width: 760px; margin: 0 auto; padding: 48px 20px; background: linear-gradient(135deg, var(--background), #f8f5ed); }
+        main { display: grid; gap: 24px; }
+        section { padding: 28px; background: var(--paper); border: 1px solid rgba(11, 114, 133, 0.12); border-radius: 12px; box-shadow: 0 12px 30px rgba(28, 54, 60, 0.08); }
+        h1, h2 { margin: 0; } h1 { font-size: 28px; } h2 { font-size: 20px; }
+        .intro { margin: 8px 0 0; color: var(--muted); }
+        input, button { font: inherit; }
+        .field { display: grid; gap: 7px; margin-top: 16px; }
+        .field label { font-weight: bold; }
+        input[type="text"], input[type="datetime-local"] { width: 100%; padding: 11px 12px; border: 1px solid #b9c9cc; border-radius: 7px; background: #fff; }
+        input[type="file"] { display: block; width: 100%; margin: 20px 0 14px; padding: 12px; border: 1px dashed #9eb7bb; border-radius: 8px; background: #f8fbfb; }
+        button { padding: 11px 16px; border: 0; border-radius: 7px; color: white; background-color: var(--accent); cursor: pointer; transition: background-color 0.2s ease, transform 0.2s ease; }
+        button:hover { background-color: var(--accent-dark); transform: translateY(-1px); } button:disabled { opacity: 0.6; cursor: wait; transform: none; }
+        .upload-button { width: 100%; margin-top: 20px; } #status { min-height: 24px; margin-top: 14px; font-weight: bold; }
+        .success { color: #18794e; } .error { color: #b42318; }
+        .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+        .refresh-button { padding: 8px 12px; color: var(--accent-dark); background: #e4f2f1; }
+        .refresh-button:hover { color: white; } #fileList { display: grid; gap: 10px; }
+        .file-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); }
+        .file-info { min-width: 0; } .file-name { overflow-wrap: anywhere; font-weight: bold; } .file-date { margin-top: 4px; color: var(--muted); font-size: 14px; }
+        .meeting-row { padding: 18px 0; border-top: 1px solid var(--line); }
+        .meeting-meta { display: grid; gap: 5px; margin-top: 8px; color: var(--muted); }
+        .meeting-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+        .meeting-links a { color: white; text-decoration: none; }
+        .attachment-list { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
+        .view-button { flex: 0 0 auto; text-decoration: none; } .empty-message { color: var(--muted); }
+        .pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 20px; }
+        .pagination button { padding: 8px 12px; }
+        .pagination button:disabled { background: #c5d0d2; color: #657276; cursor: not-allowed; }
+        #pageInfo { min-width: 130px; color: var(--muted); text-align: center; }
+        @media (max-width: 520px) { body { padding: 24px 12px; } section { padding: 20px; } .file-row { align-items: stretch; flex-direction: column; gap: 10px; } .view-button, .view-button button { width: 100%; } }
     </style>
 </head>
 <body>
-    <h2>上傳會議紀錄</h2>
-    <form id="uploadForm">
-        <input type="file" id="fileInput" required>
-        <button type="submit" id="submitBtn">開始上傳</button>
-    </form>
-    <div id="status"></div>
+    <main>
+        <section><h1>實驗室會議紀錄<br><span lang="en">Lab Meeting Minutes</span></h1><p class="intro">上傳新的會議紀錄，並從下方開啟已保存的資料。<br><span lang="en">Upload new meeting minutes and open saved records below.</span></p></section>
+        <section>
+            <h2>新增會議資料 <span lang="en">/ New Meeting</span></h2>
+            <form id="uploadForm">
+                <div class="field"><label for="uploader">上傳人名稱 <span lang="en">/ Uploader Name</span></label><input type="text" id="uploader" autocomplete="name" required></div>
+                <div class="field"><label for="meetingTitle">會議名稱／主題 <span lang="en">/ Meeting Title or Topic</span></label><input type="text" id="meetingTitle" required></div>
+                <div class="field"><label for="meetingTime">會議時間 <span lang="en">/ Meeting Date and Time</span></label><input type="datetime-local" id="meetingTime" required></div>
+                <div class="field"><label for="meetingLocation">會議地點 <span lang="en">/ Meeting Location</span></label><input type="text" id="meetingLocation" required></div>
+                <div class="field"><label for="minutesFile">會議記錄 <span lang="en">/ Meeting Minutes</span></label><input type="file" id="minutesFile" required></div>
+                <div class="field"><label for="attachmentFiles">相關附件（可複選） <span lang="en">/ Related Attachments (Multiple)</span></label><input type="file" id="attachmentFiles" multiple></div>
+                <button class="upload-button" type="submit" id="submitBtn">開始上傳 <span lang="en">/ Upload</span></button>
+            </form>
+            <div id="status" role="status" aria-live="polite"></div>
+        </section>
+        <section>
+            <div class="section-heading"><h2>Uploaded Meetings</h2><button class="refresh-button" type="button" id="refreshBtn">Refresh</button></div>
+            <div id="fileList" aria-live="polite">Loading...</div>
+            <div class="pagination" id="pagination" hidden>
+                <button type="button" id="previousPage">Previous</button>
+                <span id="pageInfo" aria-live="polite"></span>
+                <button type="button" id="nextPage">Next</button>
+            </div>
+        </section>
+    </main>
 
     <script>
         const form = document.getElementById('uploadForm');
-        const fileInput = document.getElementById('fileInput');
+        const uploaderInput = document.getElementById('uploader');
+        const meetingTitleInput = document.getElementById('meetingTitle');
+        const meetingTimeInput = document.getElementById('meetingTime');
+        const meetingLocationInput = document.getElementById('meetingLocation');
+        const minutesFileInput = document.getElementById('minutesFile');
+        const attachmentFilesInput = document.getElementById('attachmentFiles');
         const statusDiv = document.getElementById('status');
         const submitBtn = document.getElementById('submitBtn');
+        const fileList = document.getElementById('fileList');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const pagination = document.getElementById('pagination');
+        const previousPage = document.getElementById('previousPage');
+        const nextPage = document.getElementById('nextPage');
+        const pageInfo = document.getElementById('pageInfo');
+        const pageSize = 10;
+        let meetings = [];
+        let currentPage = 1;
         
         // 填入你的 Google Apps Script 網址
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbzz_wmPImxXuNYrOqj5rNFuugnpiZgAdBgD0fRjTO4KqXSlhok1WmyAQLxWy4JZB4U3Pg/exec';
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbw444IJS-jt4bTlspnVbDTwnGfh7OHL3t9oArf6vFILegPgWiInz5pukmbg_UbbVfREeA/exec';
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+        }
+
+        function formatDate(value) {
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? '日期未知' : date.toLocaleString('zh-TW');
+        }
+
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = event => resolve({ name: file.name, type: file.type, base64: event.target.result.split(',')[1] });
+                reader.onerror = () => reject(new Error(`無法讀取檔案：${file.name}`));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderMeetings() {
+            const totalPages = Math.ceil(meetings.length / pageSize);
+            const startIndex = (currentPage - 1) * pageSize;
+            const currentMeetings = meetings.slice(startIndex, startIndex + pageSize);
+
+            fileList.innerHTML = currentMeetings.map(meeting => `
+                <article class="meeting-row">
+                    <div class="file-name">${escapeHtml(meeting.title)}</div>
+                    <div class="meeting-meta">
+                        <span>Uploader: ${escapeHtml(meeting.uploader)}</span>
+                        <span>Date and Time: ${escapeHtml(formatDate(meeting.meetingTime))}</span>
+                        <span>Location: ${escapeHtml(meeting.location)}</span>
+                    </div>
+                    <div class="meeting-links">
+                        <a href="${escapeHtml(meeting.minutesUrl)}" target="_blank" rel="noopener noreferrer"><button type="button">View Minutes</button></a>
+                        ${(meeting.attachments || []).map(attachment => `<a href="${escapeHtml(attachment.url)}" target="_blank" rel="noopener noreferrer"><button type="button">View Attachment: ${escapeHtml(attachment.name)}</button></a>`).join('')}
+                    </div>
+                </article>`).join('');
+
+            pagination.hidden = totalPages <= 1;
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+            previousPage.disabled = currentPage === 1;
+            nextPage.disabled = currentPage === totalPages;
+        }
+
+        function loadFiles() {
+            fileList.textContent = 'Loading...';
+            refreshBtn.disabled = true;
+            fetch(scriptURL)
+                .then(response => { if (!response.ok) throw new Error('無法取得資料列表'); return response.json(); })
+                .then(result => {
+                    if (result.status !== 'success') throw new Error(result.message || '無法取得資料列表');
+                    meetings = result.meetings || [];
+                    currentPage = 1;
+                    if (meetings.length === 0) {
+                        fileList.innerHTML = '<p class="empty-message">No meetings uploaded yet.</p>';
+                        pagination.hidden = true;
+                        return;
+                    }
+                    renderMeetings();
+                })
+                .catch(error => { fileList.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`; })
+                .finally(() => { refreshBtn.disabled = false; });
+        }
 
         form.addEventListener('submit', e => {
             e.preventDefault();
-            const file = fileInput.files[0];
-            if (!file) return;
+            const minutesFile = minutesFileInput.files[0];
+            if (!minutesFile) return;
 
             statusDiv.innerText = "檔案上傳中，請稍候...";
             submitBtn.disabled = true;
 
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                // 取得 Base64 字串，並去除開頭的標籤（如 data:application/pdf;base64,）
-                const base64Data = event.target.result.split(',')[1];
-                
+            Promise.all([
+                readFile(minutesFile),
+                ...Array.from(attachmentFilesInput.files).map(readFile)
+            ]).then(([minutesFileData, ...attachments]) => {
                 const payload = {
-                    name: file.name,
-                    type: file.type,
-                    base64: base64Data
+                    uploader: uploaderInput.value.trim(),
+                    meetingTitle: meetingTitleInput.value.trim(),
+                    meetingTime: meetingTimeInput.value,
+                    meetingLocation: meetingLocationInput.value.trim(),
+                    minutesFile: minutesFileData,
+                    attachments: attachments
                 };
-
                 fetch(scriptURL, {
                     method: 'POST',
                     body: JSON.stringify(payload)
@@ -55,21 +179,40 @@
                 .then(response => response.json())
                 .then(result => {
                     if (result.status === 'success') {
-                        statusDiv.innerHTML = `<span style="color: green;">上傳成功！</span>`;
+                        statusDiv.innerHTML = '<span class="success">上傳成功！</span>';
                         form.reset();
+                        loadFiles();
                     } else {
-                        statusDiv.innerHTML = `<span style="color: red;">上傳失敗：${result.message}</span>`;
+                        statusDiv.innerHTML = `<span class="error">上傳失敗：${escapeHtml(result.message || '未知錯誤')}</span>`;
                     }
                 })
                 .catch(error => {
-                    statusDiv.innerHTML = `<span style="color: red;">發生錯誤：${error.message}</span>`;
+                    statusDiv.innerHTML = `<span class="error">發生錯誤：${escapeHtml(error.message)}</span>`;
                 })
                 .finally(() => {
                     submitBtn.disabled = false;
                 });
-            };
-            reader.readAsDataURL(file);
+            }).catch(error => {
+                statusDiv.innerHTML = `<span class="error">${escapeHtml(error.message)}</span>`;
+                submitBtn.disabled = false;
+            });
         });
+
+        refreshBtn.addEventListener('click', loadFiles);
+        previousPage.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage -= 1;
+                renderMeetings();
+            }
+        });
+        nextPage.addEventListener('click', () => {
+            const totalPages = Math.ceil(meetings.length / pageSize);
+            if (currentPage < totalPages) {
+                currentPage += 1;
+                renderMeetings();
+            }
+        });
+        loadFiles();
     </script>
 </body>
 </html>
