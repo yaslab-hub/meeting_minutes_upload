@@ -1,1 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>實驗室會議紀錄上傳平台</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px; }
+        input, button { display: block; width: 100%; margin: 15px 0; padding: 10px; box-sizing: border-box; }
+        button { background-color: #0366d6; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #status { margin-top: 20px; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+    <h2>上傳會議紀錄</h2>
+    <form id="uploadForm">
+        <input type="file" id="fileInput" required>
+        <button type="submit" id="submitBtn">開始上傳</button>
+    </form>
+    <div id="status"></div>
 
+    <script>
+        const form = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('fileInput');
+        const statusDiv = document.getElementById('status');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        // 填入你的 Google Apps Script 網址
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbzz_wmPImxXuNYrOqj5rNFuugnpiZgAdBgD0fRjTO4KqXSlhok1WmyAQLxWy4JZB4U3Pg/exec';
+
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            statusDiv.innerText = "檔案上傳中，請稍候...";
+            submitBtn.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                // 取得 Base64 字串，並去除開頭的標籤（如 data:application/pdf;base64,）
+                const base64Data = event.target.result.split(',')[1];
+                
+                const payload = {
+                    name: file.name,
+                    type: file.type,
+                    base64: base64Data
+                };
+
+                fetch(scriptURL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        statusDiv.innerHTML = `<span style="color: green;">上傳成功！</span>`;
+                        form.reset();
+                    } else {
+                        statusDiv.innerHTML = `<span style="color: red;">上傳失敗：${result.message}</span>`;
+                    }
+                })
+                .catch(error => {
+                    statusDiv.innerHTML = `<span style="color: red;">發生錯誤：${error.message}</span>`;
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html>
